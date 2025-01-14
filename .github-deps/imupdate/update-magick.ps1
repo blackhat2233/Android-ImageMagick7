@@ -95,8 +95,7 @@ Get-ChildItem -File | Foreach-Object {Remove-Item $_.FullName}
 $DelDirs = @(
     ".git", ".github", "api_examples", "app-image", "config",
     "images", "m4", "PerlMagick", "scripts", "tests",
-    "www", "MagickWand\tests", "Magick++\bin", "Magick++\demo",
-    "Magick++\tests", "Magick++\fuzz"
+    "www", "Magick++\tests"
 )
 
 $ExcludeFileTypes = @(
@@ -106,6 +105,9 @@ $ExcludeFileTypes = @(
 ForEach ($d in $DelDirs) {
     Remove-Item -Path "$TmpPath\$d" -Force -Recurse
 }
+
+$magickpp_folders = Get-ChildItem -Path "$TmpPath\Magick++" -Directory | Where-Object { $_.Name -ne "lib" }
+$magickpp_folders | Remove-Item -Recurse -Force
 
 # remove all non c or non h files
 $items = Get-ChildItem -File -Path "$TmpPath" -Exclude $ExcludeFileTypes -Recurse
@@ -181,10 +183,10 @@ Copy-Item -Path "$TmpPath\*" -Destination "$newIm" -Recurse
 Remove-Item -Path "$TmpPath" -Force -Recurse
 
 # now update version files
-$file = "$newIm\configs\arm64\MagickCore\magick-baseconfig.h"
+$file = "$newIm\configs\*\MagickCore\magick-baseconfig.h"
 (Get-Content -Path $file) -replace "$version", "$tag" | Set-Content $file
 
-$file = "$newIm\configs\arm64\MagickCore\version.h"
+$file = "$newIm\configs\*\MagickCore\version.h"
 $content = Get-Content -Path $file
 
 $content = $content -replace "#define MagickCopyright\s+`"[^`"]+`"", "#define MagickCopyright  `"$magick_copyright`""
