@@ -28,7 +28,7 @@ jobs:
         if: steps.imupdater.outcome == 'success' && steps.imupdater.conclusion == 'success'
         uses: peter-evans/create-pull-request@v3
         with:
-          token: ${{ secrets.REPO_SCOPED_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}  # Using the default GITHUB_TOKEN
           commit-message: Update ImageMagick from ${{ steps.imupdater.outputs.OldVersion }} -> ${{ steps.imupdater.outputs.NewVersion }}
           committer: GitHub <noreply@github.com>
           author: GitHub <noreply@github.com>
@@ -62,6 +62,6 @@ jobs:
         if: steps.cpr.outputs.pull-request-operation == 'created' && steps.imupdater.outcome == 'success' && steps.imupdater.conclusion == 'success'
         uses: peter-evans/enable-pull-request-automerge@v1
         with:
-          token: ${{ secrets.REPO_SCOPED_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}  # Using the default GITHUB_TOKEN
           pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
           merge-method: rebase
