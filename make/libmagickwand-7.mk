@@ -18,11 +18,21 @@ ifneq ($(STATIC_BUILD),true)
 endif
 
 LOCAL_SRC_FILES := \
+    $(IMAGE_MAGICK)/MagickWand/add_first_lists.c \
+    $(IMAGE_MAGICK)/MagickWand/add_first.c \
+    $(IMAGE_MAGICK)/MagickWand/add_index.c \
+    $(IMAGE_MAGICK)/MagickWand/add_last_lists.c \
+    $(IMAGE_MAGICK)/MagickWand/add_last.c \
+    $(IMAGE_MAGICK)/MagickWand/add_mixed_lists.c \
+    $(IMAGE_MAGICK)/MagickWand/add_mixed.c \
+    $(IMAGE_MAGICK)/MagickWand/add_norm_lists.c \
+    $(IMAGE_MAGICK)/MagickWand/add_norm.c \
+    $(IMAGE_MAGICK)/MagickWand/loop_over_lists.c \
+    $(IMAGE_MAGICK)/MagickWand/script-token-test.c \
     $(IMAGE_MAGICK)/MagickWand/animate.c \
     $(IMAGE_MAGICK)/MagickWand/compare.c \
     $(IMAGE_MAGICK)/MagickWand/composite.c \
     $(IMAGE_MAGICK)/MagickWand/conjure.c \
-    $(IMAGE_MAGICK)/MagickWand/convert.c \
     $(IMAGE_MAGICK)/MagickWand/deprecate.c \
     $(IMAGE_MAGICK)/MagickWand/display.c \
     $(IMAGE_MAGICK)/MagickWand/drawing-wand.c \
