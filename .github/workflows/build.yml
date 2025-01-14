@@ -1,7 +1,17 @@
-name: Build
+name: local Build
 
 on:
   workflow_dispatch:
+    inputs:
+      abi:
+        description: "Select target ABI for the build"
+        required: true
+        default: "arm64-v8a"
+        options:
+          - arm64-v8a
+          - armeabi-v7a
+          - x86
+          - x86_64
   pull_request:
 
 jobs:
@@ -17,10 +27,27 @@ jobs:
         with:
           ndk-version: r27c
 
+      - name: Configure Build ABI
+        run: |
+          $file = "Application.mk"
+          $line = "APP_ABI := ${{ github.event.inputs.abi }}"
+
+          # Read the file, replace the line, or add it at the end if not present
+          $content = Get-Content $file
+
+          # Replace or add the line
+          $content = $content -replace "APP_ABI :=.*", $line
+          if ($content -eq (Get-Content $file)) {
+              $content += $line
+          }
+
+          # Write the modified content back to the file
+          $content | Set-Content $file
+
       # This must be run as cmd /c to redirect output properly
       # because powershell considers stderr an error and doesn't
       # log it into the output properly
-      - name: build
+      - name: Build for ${{ github.event.inputs.abi }}
         id: build
         continue-on-error: true
         run: |
@@ -28,22 +55,22 @@ jobs:
           cmd /c "build-release 2> errors.txt"
 
       - name: Set error-log to var
-        uses: actions/github-script@v4
+        uses: actions/github-script@v7
         id: error-log
         if: steps.build.outcome != 'success'
         with:
           script: |
             const fs = require('fs');
-            return fs.readFileSync('errors.txt','utf8').toString();
+            return fs.readFileSync('errors.txt', 'utf8').toString();
           result-encoding: string
 
       - uses: actions/upload-artifact@v4
         if: steps.build.outcome == 'success'
         with:
-          name: imagemagick-7-android
+          name: imagemagick-7-android-${{ github.event.inputs.abi }}
           path: jniLibs
-      
-      - uses: mshick/add-pr-comment@v1
+
+      - uses: mshick/add-pr-comment@v2
         name: Add error log to PR
         if: github.event_name == 'pull_request' && steps.build.outcome != 'success'
         with:
@@ -51,9 +78,9 @@ jobs:
           allow-repeats: true
           message: |
             The build just failed compilation :weary:
-            
+
             Here is the error log from the build :confused: Please check it and fix any problems in your code :open_mouth:
-            
+
             <details>
             <summary>
             Expand Stderr Log
@@ -67,9 +94,9 @@ jobs:
 
       - name: Show build errors
         if: steps.build.outcome != 'success'
-        uses: actions/github-script@v4
+        uses: actions/github-script@v7
         with:
           script: |
-              const fs = require('fs');
-              console.log(fs.readFileSync('errors.txt','utf8').toString());
-              core.setFailed('Build failed');
+            const fs = require('fs');
+            console.log(fs.readFileSync('errors.txt', 'utf8').toString());
+            core.setFailed('Build failed');
