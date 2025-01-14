@@ -14,7 +14,7 @@ jobs:
     if: (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.actor == 'blackhat2233' && github.head_ref == 'imupdate') || github.event_name == 'release' || github.event_name == 'workflow_dispatch'
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: nttld/setup-ndk@v1
         with:
           ndk-version: r27c
