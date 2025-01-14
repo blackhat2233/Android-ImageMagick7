@@ -46,7 +46,7 @@ jobs:
           name: imagemagick-7-android
           path: jniLibs
       
-      - uses: mshick/add-pr-comment@v1
+      - uses: mshick/add-pr-comment@v2
         name: Add error log to PR
         if: github.event_name == 'pull_request' && steps.build.outcome != 'success'
         with:
