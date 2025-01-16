@@ -4,11 +4,12 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-
+      interval: "cron"
+      cron: "0 */6 * * *"
   # Check for updates for NDK dependencies
   - package-ecosystem: "gradle"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "cron"
+      cron: "0 */6 * * *"
 
