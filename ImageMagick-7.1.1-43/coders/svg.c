@@ -3125,7 +3125,7 @@ static Image *RenderMSVGImage(const ImageInfo *image_info,Image *image,
           option=GetImageOption(image_info,"svg:substitute-entities");
           if ((option != (char *) NULL) &&
               (IsStringTrue(option) != MagickFalse))
-            (void) xmlCtxtUseOptions(parser,XML_PARSE_NOENT);
+            (void) xmlCtxtUseOptions(parser,0);  // Disable external entity expansion
           while ((n=ReadBlob(image,MagickPathExtent-1,message)) != 0)
           {
             message[n]='\0';
