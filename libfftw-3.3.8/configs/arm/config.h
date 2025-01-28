@@ -83,7 +83,7 @@
 #define HAVE_ARMV7A_CNTVCT
 
 /* Define if you have enabled the PMCCNTR cycle counter on ARMv7a */
-#define HAVE_ARMV7A_PMCCNTR
+/* #undef HAVE_ARMV7A_PMCCNTR */
 
 /* Define if you have enabled the CNTVCT_EL0 cycle counter on ARMv8 */
 /* #undef HAVE_ARMV8_CNTVCT_EL0 */
