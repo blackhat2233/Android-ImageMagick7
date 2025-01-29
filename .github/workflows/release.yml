@@ -6,8 +6,9 @@ on:
       abi:
         description: "Select target ABI for the release build"
         required: false
-        default: "arm64-v8a"
+        default: "all"
         options:
+          - all
           - arm64-v8a
           - armeabi-v7a
           - x86
@@ -34,38 +35,87 @@ jobs:
           ndk-version: r27c
 
       - name: Set ABI environment variable
+        shell: pwsh  # Ensure the correct shell is used
         run: |
-          echo "ABI=${{ github.event.inputs.abi || 'arm64-v8a' }}" >> $env:GITHUB_ENV
+          $abi_input = "${{ github.event.inputs.abi }}"
+          if ([string]::IsNullOrWhiteSpace($abi_input) -or $abi_input -eq "all") {
+              echo "ABI_LIST=arm64-v8a armeabi-v7a x86 x86_64" | Out-File -FilePath $env:GITHUB_ENV -Append
+              echo "ABI_NAME=all" | Out-File -FilePath $env:GITHUB_ENV -Append
+          } elseif ($abi_input -match "^(arm64-v8a|armeabi-v7a|x86|x86_64)$") {
+              echo "ABI_LIST=$abi_input" | Out-File -FilePath $env:GITHUB_ENV -Append
+              echo "ABI_NAME=$abi_input" | Out-File -FilePath $env:GITHUB_ENV -Append
+          } else {
+              echo "Invalid ABI input, defaulting to all."
+              echo "ABI_LIST=arm64-v8a armeabi-v7a x86 x86_64" | Out-File -FilePath $env:GITHUB_ENV -Append
+              echo "ABI_NAME=all" | Out-File -FilePath $env:GITHUB_ENV -Append
+          }
 
       - name: Configure ABI for Release Build
+        shell: pwsh
         run: |
-          Write-Host "Setting ABI to $env:ABI"
+          Write-Host "Setting ABI to $env:ABI_LIST"
+          # Set Application.mk for the current ABI
           $file = "Application.mk"
-          $line = "APP_ABI := $env:ABI"
-
-          # Read the file and replace or add the line
+          $line = "APP_ABI := $abi"
           $content = Get-Content $file
           $content = $content -replace "APP_ABI :=.*", $line
           if ($content -eq (Get-Content $file)) {
               $content += $line
-          }
-
+          }   
           # Write the modified content back to the file
           $content | Set-Content $file
 
       - name: Build and Archive Static Library
         run: |
-          ./build-release
-          $targetDir = Get-ChildItem -Path "jniLibs" -Directory | Select-Object -ExpandProperty FullName
-          Compress-Archive -CompressionLevel Optimal -Path $targetDir -DestinationPath "imagemagick-7-android-${{ env.ABI }}-static.zip"
-          rm -r jniLibs
+          $abis = "$env:ABI_LIST" -split " "
+          $lastAbi = $abis[-1]  # Get the last ABI in the list
+
+          foreach ($abi in $abis) {
+              Write-Host "Building static library for ABI: $abi"
+              ./build-release
+
+              # Check if the static build succeeded
+              if ((Test-Path "jniLibs/$abi/magick") -and (Get-ChildItem -Path "jniLibs/$abi" -Filter "*.so" | Measure-Object).Count -gt 0) {
+                  $targetDir = Get-ChildItem -Path "jniLibs" -Directory | Select-Object -ExpandProperty FullName
+                  Compress-Archive -CompressionLevel Optimal -Path $targetDir -DestinationPath "imagemagick-7-android-${{ env.ABI_NAME }}-static.zip"
+                  rm -r jniLibs
+
+                  if ($abi -eq $lastAbi -or $abis.Count -eq 1) {
+                      echo "$abi static build succeeded"
+                  } else {
+                      echo "$abi static build succeeded, proceeding to next"
+                  }
+              } else {
+                  echo "$abi static build failed, stopping build process"
+                  exit 1
+              }
+          }
 
       - name: Build and Archive Shared Library
         run: |
-          ./.github-deps/change-to-shared-lib.ps1
-          ./build-release
-          $targetDir = Get-ChildItem -Path "jniLibs" -Directory | Select-Object -ExpandProperty FullName
-          Compress-Archive -CompressionLevel Optimal -Path $targetDir -DestinationPath "imagemagick-7-android-${{ env.ABI }}-shared.zip"
+          $abis = "$env:ABI_LIST" -split " "
+          $lastAbi = $abis[-1]  # Get the last ABI in the list
+
+          foreach ($abi in $abis) {
+              Write-Host "Building shared library for ABI: $abi"
+              ./.github-deps/change-to-shared-lib.ps1
+              ./build-release
+
+              # Check if the shared build succeeded
+              if ((Test-Path "jniLibs/$abi/magick") -and (Get-ChildItem -Path "jniLibs/$abi" -Filter "*.so" | Measure-Object).Count -gt 0) {
+                  $targetDir = Get-ChildItem -Path "jniLibs" -Directory | Select-Object -ExpandProperty FullName
+                  Compress-Archive -CompressionLevel Optimal -Path $targetDir -DestinationPath "imagemagick-7-android-${{ env.ABI_NAME }}-shared.zip"
+
+                  if ($abi -eq $lastAbi -or $abis.Count -eq 1) {
+                      echo "$abi shared build succeeded"
+                  } else {
+                      echo "$abi shared build succeeded, proceeding to next"
+                  }
+              } else {
+                  echo "$abi shared build failed, stopping build process"
+                  exit 1
+              }
+          }
 
       - name: Get Latest Release Info
         if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
@@ -81,7 +131,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          file: 'imagemagick-7-android-${{ env.ABI }}-*.zip'
+          file: 'imagemagick-7-android-${{ env.ABI_NAME }}-*.zip'
           release_id: ${{ steps.latest_release.outputs.id }}
           overwrite: true
           draft: false
@@ -99,7 +149,7 @@ jobs:
         if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
         with:
           name: Android ImageMagick ${{ steps.tag.outputs.TAG }}
-          artifacts: 'imagemagick-7-android-${{ env.ABI }}-*.zip'
+          artifacts: 'imagemagick-7-android-${{ env.ABI_NAME }}-*.zip'
           body: |
             Library built using default config.
 
